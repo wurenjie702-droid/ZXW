@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>物流查询</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.12);
+            --glass-border: rgba(255, 255, 255, 0.18);
+            --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            --glass-blur: blur(20px);
+            --accent: #6366f1;
+            --accent-light: #818cf8;
+            --accent-glow: rgba(99, 102, 241, 0.4);
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.7);
+            --text-muted: rgba(255, 255, 255, 0.45);
+            --success: #34d399;
+            --warning: #fbbf24;
+            --danger: #f87171;
+            --info: #60a5fa;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', -apple-system, 'Segoe UI', system-ui, sans-serif;
+            min-height: 100vh;
+            background: #0a0a1a;
+            color: var(--text-primary);
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background:
+                radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.25) 0%, transparent 50%),
+                radial-gradient(ellipse at 85% 85%, rgba(139, 92, 246, 0.2) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 50%, rgba(59, 130, 246, 0.1) 0%, transparent 60%),
+                radial-gradient(ellipse at 20% 80%, rgba(16, 185, 129, 0.08) 0%, transparent 40%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            top: -50%; left: -50%;
+            width: 200%; height: 200%;
+            background: conic-gradient(from 0deg at 50% 50%,
+                transparent 0deg,
+                rgba(99, 102, 241, 0.03) 60deg,
+                transparent 120deg,
+                rgba(139, 92, 246, 0.03) 180deg,
+                transparent 240deg,
+                rgba(59, 130, 246, 0.03) 300deg,
+                transparent 360deg
+            );
+            animation: rotateBg 60s linear infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        @keyframes rotateBg {
+            to { transform: rotate(360deg); }
+        }
+
+        .glass-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            box-shadow: var(--glass-shadow);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-card:hover {
+            border-color: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35), 0 0 30px var(--accent-glow);
+            transform: translateY(-2px);
+        }
+
+        .glass-input {
+            width: 100%;
+            padding: 14px 20px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 14px;
+            color: var(--text-primary);
+            font-size: 15px;
+            font-family: inherit;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .glass-input:focus {
+            border-color: var(--accent);
+            background: rgba(255, 255, 255, 0.1);
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        .glass-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .glass-select {
+            width: 100%;
+            padding: 14px 20px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 14px;
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: inherit;
+            outline: none;
+            cursor: pointer;
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='rgba(255,255,255,0.5)' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 16px center;
+            transition: all 0.3s ease;
+        }
+
+        .glass-select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        .glass-select option {
+            background: #1e1e3a;
+            color: #fff;
+        }
+
+        .glass-btn {
+            padding: 14px 32px;
+            background: linear-gradient(135deg, var(--accent) 0%, #8b5cf6 100%);
+            border: none;
+            border-radius: 14px;
+            color: #fff;
+            font-size: 15px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 15px var(--accent-glow);
+        }
+
+        .glass-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px var(--accent-glow);
+        }
+
+        .glass-btn:active {
+            transform: translateY(0);
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 30px 20px 80px;
+        }
+
+        header {
+            text-align: center;
+            padding: 40px 0 30px;
+        }
+
+        .logo-icon {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, var(--accent) 0%, #8b5cf6 100%);
+            border-radius: 18px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            color: #fff;
+            margin-bottom: 16px;
+            box-shadow: 0 8px 30px var(--accent-glow);
+        }
+
+        header h1 {
+            font-size: 28px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #fff 0%, var(--accent-light) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        header p {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-top: 6px;
+        }
+
+        .search-section {
+            padding: 30px;
+            margin-bottom: 24px;
+        }
+
+        .search-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .search-title i {
+            color: var(--accent-light);
+        }
+
+        .filter-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+
+        .filter-item label {
+            display: block;
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+
+        .search-row {
+            display: flex;
+            gap: 12px;
+        }
+
+        .search-row .glass-input {
+            flex: 1;
+        }
+
+        .result-section {
+            padding: 0;
+        }
+
+        .result-card {
+            padding: 20px 24px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .result-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(180deg, var(--accent) 0%, #8b5cf6 100%);
+            border-radius: 4px 0 0 4px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .result-card:hover::before {
+            opacity: 1;
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .result-id {
+            font-size: 16px;
+            font-weight: 700;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+        }
+
+        .result-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .badge-shipment { background: rgba(59, 130, 246, 0.2); color: var(--info); }
+        .badge-business { background: rgba(99, 102, 241, 0.2); color: var(--accent-light); }
+        .badge-container { background: rgba(245, 158, 11, 0.2); color: var(--warning); }
+
+        .result-route {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .result-route i {
+            color: var(--accent-light);
+            font-size: 11px;
+        }
+
+        .result-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .result-meta span {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .result-meta i {
+            font-size: 11px;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .status-pending { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
+        .status-processing { background: rgba(59, 130, 246, 0.15); color: var(--info); }
+        .status-shipped { background: rgba(99, 102, 241, 0.15); color: var(--accent-light); }
+        .status-transit { background: rgba(99, 102, 241, 0.2); color: var(--accent-light); }
+        .status-delivered { background: rgba(16, 185, 129, 0.15); color: var(--success); }
+        .status-exception { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
+
+        .detail-modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .detail-modal-overlay.active {
+            display: flex;
+        }
+
+        .detail-modal {
+            width: 100%;
+            max-width: 700px;
+            max-height: 85vh;
+            overflow-y: auto;
+            padding: 30px;
+            position: relative;
+        }
+
+        .detail-modal::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .detail-modal::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .detail-modal::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 3px;
+        }
+
+        .detail-close {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-secondary);
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .detail-close:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+        }
+
+        .detail-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 24px;
+            padding-right: 40px;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .detail-section-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--accent-light);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .detail-item {
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            font-size: 14px;
+        }
+
+        .detail-item:last-child {
+            border-bottom: none;
+        }
+
+        .detail-label {
+            color: var(--text-muted);
+            font-size: 12px;
+            margin-bottom: 3px;
+        }
+
+        .detail-value {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .track-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            background: rgba(59, 130, 246, 0.15);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 8px;
+            color: var(--info);
+            font-size: 12px;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-left: 8px;
+        }
+
+        .track-btn:hover {
+            background: rgba(59, 130, 246, 0.25);
+            border-color: rgba(59, 130, 246, 0.5);
+        }
+
+        .tracking-timeline {
+            margin-top: 20px;
+        }
+
+        .timeline-item {
+            display: flex;
+            gap: 14px;
+            padding-bottom: 16px;
+            position: relative;
+        }
+
+        .timeline-item:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            left: 5px;
+            top: 18px;
+            bottom: 0;
+            width: 1px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .timeline-dot {
+            width: 11px;
+            height: 11px;
+            border-radius: 50%;
+            background: var(--text-muted);
+            flex-shrink: 0;
+            margin-top: 4px;
+        }
+
+        .timeline-dot.active {
+            background: var(--accent);
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .timeline-content {
+            flex: 1;
+        }
+
+        .timeline-status {
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .timeline-status.active {
+            color: var(--accent-light);
+        }
+
+        .timeline-time {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .timeline-desc {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 3px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+        }
+
+        .empty-state i {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.3;
+        }
+
+        .empty-state p {
+            font-size: 15px;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 640px) {
+            .container { padding: 16px 12px 60px; }
+            header { padding: 24px 0 20px; }
+            header h1 { font-size: 22px; }
+            .search-section { padding: 20px; }
+            .filter-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+            .detail-grid { grid-template-columns: 1fr; }
+            .detail-modal { padding: 20px; }
+            .result-meta { gap: 10px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo-icon">
+                <i class="fas fa-shipping-fast"></i>
+            </div>
+            <h1>物流查询</h1>
+            <p>输入订单号或运单号查询物流信息</p>
+        </header>
+
+        <div class="glass-card search-section">
+            <div class="search-title">
+                <i class="fas fa-search"></i>
+                查询物流
+            </div>
+            <div class="filter-grid">
+                <div class="filter-item">
+                    <label>运输方式</label>
+                    <select id="filter-method" class="glass-select">
+                        <option value="all">全部方式</option>
+                        <option value="air">空运</option>
+                        <option value="sea">海运</option>
+                        <option value="express">快递</option>
+                        <option value="land">陆运</option>
+                    </select>
+                </div>
+                <div class="filter-item">
+                    <label>开始日期</label>
+                    <input type="date" id="filter-start" class="glass-input">
+                </div>
+                <div class="filter-item">
+                    <label>结束日期</label>
+                    <input type="date" id="filter-end" class="glass-input">
+                </div>
+            </div>
+            <div class="search-row">
+                <input type="text" id="search-input" class="glass-input" placeholder="请输入订单号或运单号查询..." onkeypress="if(event.key==='Enter') doSearch()">
+                <button class="glass-btn" onclick="doSearch()">
+                    <i class="fas fa-search"></i> 查询
+                </button>
+            </div>
+        </div>
+
+        <div id="results-area"></div>
+    </div>
+
+    <div class="detail-modal-overlay" id="detail-overlay" onclick="if(event.target===this) closeDetail()">
+        <div class="glass-card detail-modal" id="detail-modal"></div>
+    </div>
+
+    <script>
+        const supabaseUrl = localStorage.getItem('supabase_url') || '';
+        const supabaseKey = localStorage.getItem('supabase_anon_key') || '';
+        const cfWorkerUrl = (localStorage.getItem('cfWorkerUrl') || '').replace(/\/+$/, '');
+        let supabaseClient = null;
+        let dbProvider = localStorage.getItem('db_provider') || localStorage.getItem('dbProvider') || 'cloudflare';
+
+        if (supabaseUrl && supabaseKey) {
+            try {
+                supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+            } catch (e) {
+                console.warn('Supabase初始化失败:', e);
+            }
+        }
+
+        const statusMap = {
+            'pending': '待处理', 'processing': '处理中', 'picked-up': '已揽收', 'shipped': '已发货',
+            'in-transit': '运输中', 'clearance': '清关中', 'out-for-delivery': '派送中',
+            'delivered': '已送达', 'returned': '已退回', 'exception': '异常',
+            '已完成': '已完成', '处理中': '处理中', '待处理': '待处理'
+        };
+
+        function getStatusClass(status) {
+            const map = {
+                'pending': 'status-pending', '待处理': 'status-pending',
+                'processing': 'status-processing', '处理中': 'status-processing',
+                'shipped': 'status-shipped', '已发货': 'status-shipped',
+                'in-transit': 'status-transit', '运输中': 'status-transit',
+                'delivered': 'status-delivered', '已送达': 'status-delivered', '已完成': 'status-delivered',
+                'exception': 'status-exception', '异常': 'status-exception'
+            };
+            return map[status] || 'status-pending';
+        }
+
+        async function fetchFromCloud(queryFn) {
+            if (dbProvider === 'cloudflare' && cfWorkerUrl) {
+                try {
+                    return await queryFn('cloudflare');
+                } catch (e) {
+                    console.warn('Cloudflare查询失败:', e);
+                }
+            }
+            if (supabaseClient) {
+                try {
+                    return await queryFn('supabase');
+                } catch (e) {
+                    console.warn('Supabase查询失败:', e);
+                }
+            }
+            return null;
+        }
+
+        async function searchShipments(keyword, methodFilter, startDate, endDate) {
+            return fetchFromCloud(async (provider) => {
+                if (provider === 'supabase') {
+                    let query = supabaseClient.from('shipments').select('*').is('deleted_at', null);
+                    if (keyword) {
+                        query = query.or(`id.ilike.%${keyword}%,tracking_number.ilike.%${keyword}%,customer_name.ilike.%${keyword}%`);
+                    }
+                    if (methodFilter && methodFilter !== 'all') {
+                        query = query.eq('transport_method', methodFilter);
+                    }
+                    if (startDate) query = query.gte('created_at', startDate);
+                    if (endDate) query = query.lte('created_at', endDate + 'T23:59:59');
+                    const { data, error } = await query.order('created_at', { ascending: false }).limit(50);
+                    if (error) throw error;
+                    return (data || []).map(normalizeShipment);
+                } else {
+                    let url = `${cfWorkerUrl}/api/data/shipments?limit=50&order=created_at DESC`;
+                    if (keyword) url += `&filter=id@ilike.*${keyword}*`;
+                    if (methodFilter && methodFilter !== 'all') url += `&filter=transport_method=${methodFilter}`;
+                    const resp = await fetch(url);
+                    const result = await resp.json();
+                    return (result.data || []).filter(d => !d.deleted_at).map(normalizeShipment);
+                }
+            });
+        }
+
+        async function searchBusinessOrders(keyword, startDate, endDate) {
+            return fetchFromCloud(async (provider) => {
+                if (provider === 'supabase') {
+                    let query = supabaseClient.from('business_orders').select('*').is('deleted_at', null);
+                    if (keyword) {
+                        query = query.or(`id.ilike.%${keyword}%,tracking_number.ilike.%${keyword}%,customer_name.ilike.%${keyword}%`);
+                    }
+                    if (startDate) query = query.gte('order_date', startDate);
+                    if (endDate) query = query.lte('order_date', endDate + 'T23:59:59');
+                    const { data, error } = await query.order('created_at', { ascending: false }).limit(50);
+                    if (error) throw error;
+                    return (data || []).map(normalizeBusinessOrder);
+                } else {
+                    let url = `${cfWorkerUrl}/api/data/business_orders?limit=50&order=created_at DESC`;
+                    if (keyword) url += `&filter=id@ilike.*${keyword}*`;
+                    const resp = await fetch(url);
+                    const result = await resp.json();
+                    return (result.data || []).filter(d => !d.deleted_at).map(normalizeBusinessOrder);
+                }
+            });
+        }
+
+        async function searchContainerOrders(keyword, startDate, endDate) {
+            return fetchFromCloud(async (provider) => {
+                if (provider === 'supabase') {
+                    let query = supabaseClient.from('container_orders').select('*').is('deleted_at', null);
+                    if (keyword) {
+                        query = query.or(`id.ilike.%${keyword}%,tracking_number.ilike.%${keyword}%,customer_name.ilike.%${keyword}%`);
+                    }
+                    if (startDate) query = query.gte('order_date', startDate);
+                    if (endDate) query = query.lte('order_date', endDate + 'T23:59:59');
+                    const { data, error } = await query.order('created_at', { ascending: false }).limit(50);
+                    if (error) throw error;
+                    return (data || []).map(normalizeContainerOrder);
+                } else {
+                    let url = `${cfWorkerUrl}/api/data/container_orders?limit=50&order=created_at DESC`;
+                    if (keyword) url += `&filter=id@ilike.*${keyword}*`;
+                    const resp = await fetch(url);
+                    const result = await resp.json();
+                    return (result.data || []).filter(d => !d.deleted_at).map(normalizeContainerOrder);
+                }
+            });
+        }
+
+        async function searchTrackingHistory(shipmentId) {
+            return fetchFromCloud(async (provider) => {
+                if (provider === 'supabase') {
+                    const { data, error } = await supabaseClient.from('tracking_history').select('*').is('deleted_at', null).eq('shipment_id', shipmentId).order('created_at', { ascending: false });
+                    if (error) throw error;
+                    return data || [];
+                } else {
+                    const url = `${cfWorkerUrl}/api/data/tracking_history?filter=shipment_id=${shipmentId}&order=created_at DESC`;
+                    const resp = await fetch(url);
+                    const result = await resp.json();
+                    return (result.data || []).filter(d => !d.deleted_at);
+                }
+            });
+        }
+
+        function normalizeShipment(row) {
+            return {
+                id: row.id,
+                type: 'shipment',
+                origin: row.origin || '',
+                destination: row.destination || '',
+                goodsInfo: row.cargo_description || row.description || '',
+                pieces: row.quantity || row.total_quantity || 0,
+                chargeableWeight: row.chargeable_weight || row.weight || 0,
+                weightUnit: row.weight_unit || 'kg',
+                transportMethod: row.transport_method || '',
+                orderDate: row.created_at || '',
+                status: row.status || 'pending',
+                trackingNumber: row.tracking_number || '',
+                label: '',
+                notes: row.notes || '',
+                createdAt: row.created_at || ''
+            };
+        }
+
+        function normalizeBusinessOrder(row) {
+            return {
+                id: row.id,
+                type: 'businessOrder',
+                origin: row.origin || '',
+                destination: row.destination || '',
+                goodsInfo: row.goods_info || row.cargo_description || '',
+                pieces: row.pieces || row.quantity || 0,
+                chargeableWeight: row.customer_charge_weight || row.chargeable_weight || 0,
+                weightUnit: row.customer_weight_unit || row.weight_unit || 'kg',
+                transportMethod: row.transport_method || '',
+                orderDate: row.order_date || row.created_at || '',
+                status: row.status || 'pending',
+                trackingNumber: row.tracking_number || '',
+                label: row.label_required || '',
+                notes: row.notes || '',
+                createdAt: row.created_at || ''
+            };
+        }
+
+        function normalizeContainerOrder(row) {
+            return {
+                id: row.id,
+                type: 'containerOrder',
+                origin: row.origin || '',
+                destination: row.destination || '',
+                goodsInfo: row.goods_info || row.cargo_description || '',
+                pieces: row.pieces || row.quantity || 0,
+                chargeableWeight: row.customer_charge_weight || row.chargeable_weight || 0,
+                weightUnit: row.customer_weight_unit || row.weight_unit || 'kg',
+                transportMethod: row.transport_method || '',
+                orderDate: row.order_date || row.created_at || '',
+                status: row.status || 'pending',
+                trackingNumber: row.tracking_number || '',
+                label: row.label_required || '',
+                notes: row.notes || '',
+                containerType: row.container_type || '',
+                createdAt: row.created_at || ''
+            };
+        }
+
+        async function doSearch() {
+            const keyword = document.getElementById('search-input').value.trim();
+            const methodFilter = document.getElementById('filter-method').value;
+            const startDate = document.getElementById('filter-start').value;
+            const endDate = document.getElementById('filter-end').value;
+
+            if (!keyword && methodFilter === 'all' && !startDate && !endDate) {
+                renderEmpty('请输入查询条件');
+                return;
+            }
+
+            const area = document.getElementById('results-area');
+            area.innerHTML = '<div style="text-align:center;padding:40px;"><div class="loading-spinner"></div><div style="margin-top:12px;color:var(--text-muted);">查询中...</div></div>';
+
+            try {
+                const [shipments, businessOrders, containerOrders] = await Promise.all([
+                    searchShipments(keyword, methodFilter, startDate, endDate),
+                    searchBusinessOrders(keyword, startDate, endDate),
+                    searchContainerOrders(keyword, startDate, endDate)
+                ]);
+
+                const allResults = [
+                    ...(shipments || []),
+                    ...(businessOrders || []),
+                    ...(containerOrders || [])
+                ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+                if (allResults.length === 0) {
+                    renderEmpty('未找到匹配的记录');
+                } else {
+                    renderResults(allResults);
+                }
+            } catch (error) {
+                console.error('查询失败:', error);
+                renderEmpty('查询失败，请检查网络连接');
+            }
+        }
+
+        function renderEmpty(message) {
+            document.getElementById('results-area').innerHTML = `
+                <div class="glass-card empty-state">
+                    <i class="fas fa-search"></i>
+                    <p>${message}</p>
+                </div>
+            `;
+        }
+
+        function renderResults(results) {
+            const area = document.getElementById('results-area');
+            let html = '';
+
+            results.forEach((item, index) => {
+                const typeLabel = item.type === 'shipment' ? '运单' : item.type === 'businessOrder' ? '贴标' : '整柜';
+                const badgeClass = item.type === 'shipment' ? 'badge-shipment' : item.type === 'businessOrder' ? 'badge-business' : 'badge-container';
+                const statusText = statusMap[item.status] || item.status;
+                const statusClass = getStatusClass(item.status);
+                const dateStr = item.orderDate ? new Date(item.orderDate).toLocaleDateString('zh-CN') : '-';
+
+                html += `
+                    <div class="glass-card result-card" onclick="showDetail(${index})">
+                        <div class="result-header">
+                            <span class="result-id">${item.id}</span>
+                            <div style="display:flex;gap:8px;align-items:center;">
+                                <span class="result-badge ${badgeClass}">${typeLabel}</span>
+                                <span class="status-badge ${statusClass}">${statusText}</span>
+                            </div>
+                        </div>
+                        <div class="result-route">
+                            ${item.origin || '-'} <i class="fas fa-arrow-right"></i> ${item.destination || '-'}
+                        </div>
+                        <div class="result-meta">
+                            <span><i class="far fa-calendar"></i> ${dateStr}</span>
+                            <span><i class="fas fa-box"></i> ${item.pieces}件</span>
+                            <span><i class="fas fa-weight-hanging"></i> ${Number(item.chargeableWeight).toFixed(2)}${item.weightUnit}</span>
+                            ${item.transportMethod ? `<span><i class="fas fa-truck"></i> ${item.transportMethod}</span>` : ''}
+                            ${item.trackingNumber ? `<span><i class="fas fa-barcode"></i> ${item.trackingNumber}</span>` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+
+            area.innerHTML = html;
+            window._searchResults = results;
+        }
+
+        async function showDetail(index) {
+            const item = window._searchResults[index];
+            if (!item) return;
+
+            const overlay = document.getElementById('detail-overlay');
+            const modal = document.getElementById('detail-modal');
+
+            modal.innerHTML = '<div style="text-align:center;padding:40px;"><div class="loading-spinner"></div></div>';
+            overlay.classList.add('active');
+
+            let trackingData = [];
+            try {
+                trackingData = await searchTrackingHistory(item.id) || [];
+            } catch (e) {
+                console.warn('获取轨迹失败:', e);
+            }
+
+            const statusText = statusMap[item.status] || item.status;
+            const statusClass = getStatusClass(item.status);
+            const dateStr = item.orderDate ? new Date(item.orderDate).toLocaleDateString('zh-CN') : '-';
+
+            let trackingHtml = '';
+            if (trackingData.length > 0) {
+                trackingHtml = `
+                    <div class="tracking-timeline" style="margin-top:20px;">
+                        <div class="detail-section-title">物流轨迹</div>
+                        ${trackingData.map((track, idx) => {
+                            const tStatus = statusMap[track.status] || track.status || '状态更新';
+                            const tTime = new Date(track.created_at || track.createdAt || '').toLocaleString('zh-CN');
+                            const isActive = idx === 0;
+                            return `
+                                <div class="timeline-item">
+                                    <div class="timeline-dot ${isActive ? 'active' : ''}"></div>
+                                    <div class="timeline-content">
+                                        <div class="timeline-status ${isActive ? 'active' : ''}">${tStatus}</div>
+                                        <div class="timeline-time">${tTime}</div>
+                                        ${track.description || track.message ? `<div class="timeline-desc">${track.description || track.message}</div>` : ''}
+                                        ${track.location ? `<div class="timeline-desc"><i class="fas fa-map-marker-alt"></i> ${track.location}</div>` : ''}
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+            }
+
+            modal.innerHTML = `
+                <button class="detail-close" onclick="closeDetail()">&times;</button>
+                <div class="detail-title">订单详情</div>
+                <div class="detail-grid">
+                    <div>
+                        <div class="detail-section-title">基本信息</div>
+                        <div class="detail-item">
+                            <div class="detail-label">订单ID</div>
+                            <div class="detail-value">${item.id}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">起运地</div>
+                            <div class="detail-value">${item.origin || '-'}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">目的地</div>
+                            <div class="detail-value">${item.destination || '-'}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">货物信息</div>
+                            <div class="detail-value">${item.goodsInfo || '-'}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">件数</div>
+                            <div class="detail-value">${item.pieces}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">客户计费重</div>
+                            <div class="detail-value">${Number(item.chargeableWeight).toFixed(2)} ${item.weightUnit}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">运输方式</div>
+                            <div class="detail-value">${item.transportMethod || '-'}</div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="detail-section-title">状态与费用</div>
+                        <div class="detail-item">
+                            <div class="detail-label">下单日期</div>
+                            <div class="detail-value">${dateStr}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">状态</div>
+                            <div class="detail-value"><span class="status-badge ${statusClass}">${statusText}</span></div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">贴标</div>
+                            <div class="detail-value">${item.label || '-'}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">备注</div>
+                            <div class="detail-value">${item.notes || '-'}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">转单号</div>
+                            <div class="detail-value">
+                                ${item.trackingNumber || '-'}
+                                ${item.trackingNumber ? `<a href="https://t.17track.net/zh-cn#nums=${item.trackingNumber}" target="_blank" class="track-btn"><i class="fas fa-globe"></i> 17Track查询</a>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                ${trackingHtml}
+            `;
+        }
+
+        function closeDetail() {
+            document.getElementById('detail-overlay').classList.remove('active');
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeDetail();
+        });
+    </script>
+</body>
+</html>
