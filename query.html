@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>物流查询</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.08);
+            --glass-border: rgba(255, 255, 255, 0.12);
+            --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            --glass-blur: blur(20px);
+            --accent: #6366f1;
+            --accent-light: #818cf8;
+            --accent-glow: rgba(99, 102, 241, 0.35);
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.65);
+            --text-muted: rgba(255, 255, 255, 0.4);
+            --success: #34d399;
+            --warning: #fbbf24;
+            --danger: #f87171;
+            --info: #60a5fa;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', -apple-system, 'Segoe UI', system-ui, sans-serif;
+            min-height: 100vh;
+            background: #0a0a1a;
+            color: var(--text-primary);
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background:
+                radial-gradient(ellipse at 15% 15%, rgba(99, 102, 241, 0.2) 0%, transparent 50%),
+                radial-gradient(ellipse at 85% 85%, rgba(139, 92, 246, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 50%, rgba(59, 130, 246, 0.08) 0%, transparent 60%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            top: -50%; left: -50%;
+            width: 200%; height: 200%;
+            background: conic-gradient(from 0deg at 50% 50%,
+                transparent 0deg,
+                rgba(99, 102, 241, 0.02) 60deg,
+                transparent 120deg,
+                rgba(139, 92, 246, 0.02) 180deg,
+                transparent 240deg,
+                rgba(59, 130, 246, 0.02) 300deg,
+                transparent 360deg
+            );
+            animation: rotateBg 80s linear infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        @keyframes rotateBg { to { transform: rotate(360deg); } }
+
+        .glass-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            box-shadow: var(--glass-shadow);
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-card:hover {
+            border-color: rgba(255, 255, 255, 0.22);
+            box-shadow: 0 10px 36px rgba(0, 0, 0, 0.35), 0 0 20px var(--accent-glow);
+        }
+
+        .glass-input {
+            width: 100%;
+            padding: 13px 18px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: inherit;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .glass-input:focus {
+            border-color: var(--accent);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 16px var(--accent-glow);
+        }
+
+        .glass-input::placeholder { color: var(--text-muted); }
+
+        .glass-select {
+            width: 100%;
+            padding: 13px 18px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-size: 13px;
+            font-family: inherit;
+            outline: none;
+            cursor: pointer;
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='rgba(255,255,255,0.4)' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 14px center;
+            transition: all 0.3s ease;
+        }
+
+        .glass-select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 16px var(--accent-glow);
+        }
+
+        .glass-select option { background: #1a1a2e; color: #fff; }
+
+        .glass-btn {
+            padding: 13px 28px;
+            background: linear-gradient(135deg, var(--accent) 0%, #8b5cf6 100%);
+            border: none;
+            border-radius: 12px;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 15px var(--accent-glow);
+            white-space: nowrap;
+        }
+
+        .glass-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 22px var(--accent-glow);
+        }
+
+        .glass-btn:active { transform: translateY(0); }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 860px;
+            margin: 0 auto;
+            padding: 24px 16px 80px;
+        }
+
+        header {
+            text-align: center;
+            padding: 32px 0 24px;
+        }
+
+        .logo-icon {
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, var(--accent) 0%, #8b5cf6 100%);
+            border-radius: 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: #fff;
+            margin-bottom: 14px;
+            box-shadow: 0 6px 24px var(--accent-glow);
+        }
+
+        header h1 {
+            font-size: 26px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #fff 0%, var(--accent-light) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        header p {
+            color: var(--text-secondary);
+            font-size: 13px;
+            margin-top: 5px;
+        }
+
+        .search-section { padding: 24px; margin-bottom: 20px; }
+
+        .search-title {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .search-title i { color: var(--accent-light); }
+
+        .filter-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .filter-item label {
+            display: block;
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .search-row { display: flex; gap: 10px; }
+        .search-row .glass-input { flex: 1; }
+
+        .result-card {
+            padding: 18px 22px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .result-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0;
+            width: 3px;
+            height: 100%;
+            background: linear-gradient(180deg, var(--accent) 0%, #8b5cf6 100%);
+            border-radius: 3px 0 0 3px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .result-card:hover::before { opacity: 1; }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .result-id {
+            font-size: 15px;
+            font-weight: 700;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+        }
+
+        .result-route {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .result-route i { color: var(--accent-light); font-size: 10px; }
+
+        .result-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .result-meta span {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .result-meta i { font-size: 10px; }
+
+        .status-icon {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            flex-shrink: 0;
+        }
+
+        .status-badge {
+            padding: 3px 10px;
+            border-radius: 16px;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .type-badge {
+            padding: 3px 10px;
+            border-radius: 16px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .badge-shipment { background: rgba(59, 130, 246, 0.15); color: var(--info); }
+        .badge-business { background: rgba(99, 102, 241, 0.15); color: var(--accent-light); }
+        .badge-container { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
+
+        .detail-modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+
+        .detail-modal-overlay.active { display: flex; }
+
+        .detail-modal {
+            width: 100%;
+            max-width: 660px;
+            max-height: 85vh;
+            overflow-y: auto;
+            padding: 28px;
+            position: relative;
+        }
+
+        .detail-modal::-webkit-scrollbar { width: 5px; }
+        .detail-modal::-webkit-scrollbar-track { background: transparent; }
+        .detail-modal::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.12); border-radius: 3px; }
+
+        .detail-close {
+            position: absolute;
+            top: 14px; right: 14px;
+            width: 34px; height: 34px;
+            border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-secondary);
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .detail-close:hover { background: rgba(255, 255, 255, 0.12); color: #fff; }
+
+        .detail-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            padding-right: 36px;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .detail-section-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--accent-light);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .detail-item {
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 13px;
+        }
+
+        .detail-item:last-child { border-bottom: none; }
+
+        .detail-label {
+            color: var(--text-muted);
+            font-size: 11px;
+            margin-bottom: 2px;
+        }
+
+        .detail-value {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .track-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 12px;
+            background: rgba(59, 130, 246, 0.12);
+            border: 1px solid rgba(59, 130, 246, 0.25);
+            border-radius: 8px;
+            color: var(--info);
+            font-size: 11px;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-left: 6px;
+        }
+
+        .track-btn:hover {
+            background: rgba(59, 130, 246, 0.2);
+            border-color: rgba(59, 130, 246, 0.4);
+        }
+
+        .tracking-timeline { margin-top: 16px; }
+
+        .timeline-item {
+            display: flex;
+            gap: 12px;
+            padding-bottom: 14px;
+            position: relative;
+        }
+
+        .timeline-item:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            left: 5px; top: 16px; bottom: 0;
+            width: 1px;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .timeline-dot {
+            width: 11px; height: 11px;
+            border-radius: 50%;
+            background: var(--text-muted);
+            flex-shrink: 0;
+            margin-top: 3px;
+        }
+
+        .timeline-dot.active {
+            background: var(--accent);
+            box-shadow: 0 0 8px var(--accent-glow);
+        }
+
+        .timeline-content { flex: 1; }
+        .timeline-status { font-size: 12px; font-weight: 600; }
+        .timeline-status.active { color: var(--accent-light); }
+        .timeline-time { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+        .timeline-desc { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+
+        .empty-state {
+            text-align: center;
+            padding: 50px 16px;
+            color: var(--text-muted);
+        }
+
+        .empty-state i { font-size: 40px; margin-bottom: 14px; opacity: 0.25; }
+        .empty-state p { font-size: 14px; }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 18px; height: 18px;
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .status-ordered .status-icon { background: rgba(59,130,246,0.2); color: #60a5fa; }
+        .status-ordered .status-badge { background: rgba(59,130,246,0.12); color: #60a5fa; }
+        .status-warehoused .status-icon { background: rgba(168,85,247,0.2); color: #c084fc; }
+        .status-warehoused .status-badge { background: rgba(168,85,247,0.12); color: #c084fc; }
+        .status-reviewed .status-icon { background: rgba(236,72,153,0.2); color: #f472b6; }
+        .status-reviewed .status-badge { background: rgba(236,72,153,0.12); color: #f472b6; }
+        .status-loaded .status-icon { background: rgba(245,158,11,0.2); color: #fbbf24; }
+        .status-loaded .status-badge { background: rgba(245,158,11,0.12); color: #fbbf24; }
+        .status-sailed .status-icon { background: rgba(14,165,233,0.2); color: #38bdf8; }
+        .status-sailed .status-badge { background: rgba(14,165,233,0.12); color: #38bdf8; }
+        .status-arrived .status-icon { background: rgba(20,184,166,0.2); color: #2dd4bf; }
+        .status-arrived .status-badge { background: rgba(20,184,166,0.12); color: #2dd4bf; }
+        .status-cleared .status-icon { background: rgba(34,197,94,0.2); color: #4ade80; }
+        .status-cleared .status-badge { background: rgba(34,197,94,0.12); color: #4ade80; }
+        .status-completed .status-icon { background: rgba(99,102,241,0.2); color: #818cf8; }
+        .status-completed .status-badge { background: rgba(99,102,241,0.12); color: #818cf8; }
+        .status-pending .status-icon { background: rgba(245,158,11,0.2); color: #fbbf24; }
+        .status-pending .status-badge { background: rgba(245,158,11,0.12); color: #fbbf24; }
+        .status-processing .status-icon { background: rgba(59,130,246,0.2); color: #60a5fa; }
+        .status-processing .status-badge { background: rgba(59,130,246,0.12); color: #60a5fa; }
+        .status-shipped .status-icon { background: rgba(99,102,241,0.2); color: #818cf8; }
+        .status-shipped .status-badge { background: rgba(99,102,241,0.12); color: #818cf8; }
+        .status-transit .status-icon { background: rgba(14,165,233,0.2); color: #38bdf8; }
+        .status-transit .status-badge { background: rgba(14,165,233,0.12); color: #38bdf8; }
+        .status-delivered .status-icon { background: rgba(34,197,94,0.2); color: #4ade80; }
+        .status-delivered .status-badge { background: rgba(34,197,94,0.12); color: #4ade80; }
+        .status-exception .status-icon { background: rgba(239,68,68,0.2); color: #f87171; }
+        .status-exception .status-badge { background: rgba(239,68,68,0.12); color: #f87171; }
+
+        @media (max-width: 640px) {
+            .container { padding: 12px 10px 60px; }
+            header { padding: 20px 0 16px; }
+            header h1 { font-size: 20px; }
+            .search-section { padding: 16px; }
+            .filter-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+            .detail-grid { grid-template-columns: 1fr; }
+            .detail-modal { padding: 18px; }
+            .result-meta { gap: 8px; }
+            .search-row { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo-icon">
+                <i class="fas fa-shipping-fast"></i>
+            </div>
+            <h1>物流查询</h1>
+            <p>输入订单号或运单号查询物流信息</p>
+        </header>
+
+        <div class="glass-card search-section">
+            <div class="search-title">
+                <i class="fas fa-search"></i>
+                查询物流
+            </div>
+            <div class="filter-grid">
+                <div class="filter-item">
+                    <label>运输方式</label>
+                    <select id="filter-method" class="glass-select">
+                        <option value="all">全部方式</option>
+                        <option value="air">空运</option>
+                        <option value="sea">海运</option>
+                        <option value="express">快递</option>
+                        <option value="land">陆运</option>
+                    </select>
+                </div>
+                <div class="filter-item">
+                    <label>开始日期</label>
+                    <input type="date" id="filter-start" class="glass-input">
+                </div>
+                <div class="filter-item">
+                    <label>结束日期</label>
+                    <input type="date" id="filter-end" class="glass-input">
+                </div>
+            </div>
+            <div class="search-row">
+                <input type="text" id="search-input" class="glass-input" placeholder="请输入订单号或运单号查询..." onkeypress="if(event.key==='Enter') doSearch()">
+                <button class="glass-btn" onclick="doSearch()">
+                    <i class="fas fa-search"></i> 查询
+                </button>
+            </div>
+        </div>
+
+        <div id="results-area"></div>
+    </div>
+
+    <div class="detail-modal-overlay" id="detail-overlay" onclick="if(event.target===this) closeDetail()">
+        <div class="glass-card detail-modal" id="detail-modal"></div>
+    </div>
+
+    <script>
+        const CF_WORKER_URL = 'https://throbbing-snow-4054.wurenjie577.workers.dev';
+
+        const STATUS_CONFIG = {
+            'ordered': { label: '已下单', icon: 'fa-file-invoice', css: 'status-ordered' },
+            'warehoused': { label: '已入库', icon: 'fa-warehouse', css: 'status-warehoused' },
+            'reviewed': { label: '已审单', icon: 'fa-clipboard-check', css: 'status-reviewed' },
+            'loaded': { label: '已装柜', icon: 'fa-boxes-stacked', css: 'status-loaded' },
+            'sailed': { label: '已开船', icon: 'fa-ship', css: 'status-sailed' },
+            'arrived': { label: '已到港', icon: 'fa-anchor', css: 'status-arrived' },
+            'cleared': { label: '已清关', icon: 'fa-stamp', css: 'status-cleared' },
+            'completed': { label: '已完结', icon: 'fa-circle-check', css: 'status-completed' },
+            'pending': { label: '待处理', icon: 'fa-clock', css: 'status-pending' },
+            'processing': { label: '处理中', icon: 'fa-spinner', css: 'status-processing' },
+            'picked-up': { label: '已揽收', icon: 'fa-hand-holding-box', css: 'status-ordered' },
+            'shipped': { label: '已发货', icon: 'fa-truck', css: 'status-shipped' },
+            'in-transit': { label: '运输中', icon: 'fa-plane', css: 'status-transit' },
+            'clearance': { label: '清关中', icon: 'fa-passport', css: 'status-cleared' },
+            'out-for-delivery': { label: '派送中', icon: 'fa-truck-fast', css: 'status-transit' },
+            'delivered': { label: '已送达', icon: 'fa-box-open', css: 'status-delivered' },
+            'returned': { label: '已退回', icon: 'fa-rotate-left', css: 'status-exception' },
+            'exception': { label: '异常', icon: 'fa-triangle-exclamation', css: 'status-exception' }
+        };
+
+        function getStatusInfo(status) {
+            return STATUS_CONFIG[status] || { label: status, icon: 'fa-circle-question', css: 'status-pending' };
+        }
+
+        let allData = null;
+
+        async function fetchAllData() {
+            if (allData) return allData;
+            try {
+                const resp = await fetch(`${CF_WORKER_URL}/api/data`);
+                const result = await resp.json();
+                if (result.success && result.data) {
+                    allData = result.data;
+                    return allData;
+                }
+            } catch (e) {
+                console.error('获取数据失败:', e);
+            }
+            return null;
+        }
+
+        function normalizeItem(row, type) {
+            return {
+                id: row.id || '',
+                type: type,
+                origin: row.origin || '',
+                destination: row.destination || '',
+                goodsInfo: row.goodsInfo || row.goods_info || row.cargoDescription || row.cargo_description || '',
+                pieces: row.pieces || row.quantity || row.totalQuantity || row.total_quantity || 0,
+                chargeableWeight: row.customerChargeWeight || row.customer_charge_weight || row.chargeableWeight || row.chargeable_weight || row.weight || 0,
+                weightUnit: row.customerWeightUnit || row.customer_weight_unit || row.weightUnit || row.weight_unit || 'kg',
+                transportMethod: row.transportMethod || row.transport_method || '',
+                orderDate: row.orderDate || row.order_date || row.createdAt || row.created_at || '',
+                status: row.status || 'pending',
+                trackingNumber: row.trackingNumber || row.tracking_number || '',
+                label: row.labelRequired || row.label_required || '',
+                notes: row.notes || '',
+                containerType: row.containerType || row.container_type || '',
+                createdAt: row.createdAt || row.created_at || ''
+            };
+        }
+
+        async function doSearch() {
+            const keyword = document.getElementById('search-input').value.trim().toLowerCase();
+            const methodFilter = document.getElementById('filter-method').value;
+            const startDate = document.getElementById('filter-start').value;
+            const endDate = document.getElementById('filter-end').value;
+
+            if (!keyword && methodFilter === 'all' && !startDate && !endDate) {
+                renderEmpty('请输入查询条件');
+                return;
+            }
+
+            const area = document.getElementById('results-area');
+            area.innerHTML = '<div style="text-align:center;padding:36px;"><div class="loading-spinner"></div><div style="margin-top:10px;color:var(--text-muted);font-size:13px;">查询中...</div></div>';
+
+            try {
+                const data = await fetchAllData();
+                if (!data) {
+                    renderEmpty('无法连接服务器');
+                    return;
+                }
+
+                let results = [];
+
+                const shipments = data.shipments || [];
+                shipments.forEach(item => {
+                    const n = normalizeItem(item, 'shipment');
+                    if (matchItem(n, keyword, methodFilter, startDate, endDate)) results.push(n);
+                });
+
+                const businessOrders = data.business_orders || [];
+                businessOrders.forEach(item => {
+                    const n = normalizeItem(item, 'businessOrder');
+                    if (matchItem(n, keyword, methodFilter, startDate, endDate)) results.push(n);
+                });
+
+                const containerOrders = data.container_orders || [];
+                containerOrders.forEach(item => {
+                    const n = normalizeItem(item, 'containerOrder');
+                    if (matchItem(n, keyword, methodFilter, startDate, endDate)) results.push(n);
+                });
+
+                results.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+                if (results.length === 0) {
+                    renderEmpty('未找到匹配的记录');
+                } else {
+                    renderResults(results);
+                }
+            } catch (error) {
+                console.error('查询失败:', error);
+                renderEmpty('查询失败，请检查网络连接');
+            }
+        }
+
+        function matchItem(item, keyword, methodFilter, startDate, endDate) {
+            if (keyword) {
+                const searchFields = [item.id, item.trackingNumber, item.origin, item.destination, item.goodsInfo, item.notes].join(' ').toLowerCase();
+                if (!searchFields.includes(keyword)) return false;
+            }
+            if (methodFilter && methodFilter !== 'all') {
+                if (item.transportMethod !== methodFilter) return false;
+            }
+            if (startDate) {
+                const d = item.orderDate || item.createdAt;
+                if (!d || d < startDate) return false;
+            }
+            if (endDate) {
+                const d = item.orderDate || item.createdAt;
+                if (!d || d > endDate + 'T23:59:59') return false;
+            }
+            return true;
+        }
+
+        function renderEmpty(message) {
+            document.getElementById('results-area').innerHTML = `
+                <div class="glass-card empty-state">
+                    <i class="fas fa-search"></i>
+                    <p>${message}</p>
+                </div>
+            `;
+        }
+
+        function renderResults(results) {
+            const area = document.getElementById('results-area');
+            let html = '';
+
+            results.forEach((item, index) => {
+                const typeLabel = item.type === 'shipment' ? '运单' : item.type === 'businessOrder' ? '贴标' : '整柜';
+                const badgeClass = item.type === 'shipment' ? 'badge-shipment' : item.type === 'businessOrder' ? 'badge-business' : 'badge-container';
+                const statusInfo = getStatusInfo(item.status);
+                const dateStr = item.orderDate ? new Date(item.orderDate).toLocaleDateString('zh-CN') : '-';
+
+                html += `
+                    <div class="glass-card result-card" onclick="showDetail(${index})">
+                        <div class="result-header">
+                            <span class="result-id">${item.id}</span>
+                            <div style="display:flex;gap:6px;align-items:center;">
+                                <span class="type-badge ${badgeClass}">${typeLabel}</span>
+                                <span class="status-badge ${statusInfo.css}"><span class="status-icon ${statusInfo.css}"><i class="fas ${statusInfo.icon}"></i></span> ${statusInfo.label}</span>
+                            </div>
+                        </div>
+                        <div class="result-route">
+                            ${item.origin || '-'} <i class="fas fa-arrow-right"></i> ${item.destination || '-'}
+                        </div>
+                        <div class="result-meta">
+                            <span><i class="far fa-calendar"></i> ${dateStr}</span>
+                            <span><i class="fas fa-box"></i> ${item.pieces}件</span>
+                            <span><i class="fas fa-weight-hanging"></i> ${Number(item.chargeableWeight).toFixed(2)}${item.weightUnit}</span>
+                            ${item.transportMethod ? `<span><i class="fas fa-truck"></i> ${item.transportMethod}</span>` : ''}
+                            ${item.trackingNumber ? `<span><i class="fas fa-barcode"></i> ${item.trackingNumber}</span>` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+
+            area.innerHTML = html;
+            window._searchResults = results;
+        }
+
+        async function showDetail(index) {
+            const item = window._searchResults[index];
+            if (!item) return;
+
+            const overlay = document.getElementById('detail-overlay');
+            const modal = document.getElementById('detail-modal');
+
+            modal.innerHTML = '<div style="text-align:center;padding:36px;"><div class="loading-spinner"></div></div>';
+            overlay.classList.add('active');
+
+            let trackingData = [];
+            try {
+                const data = await fetchAllData();
+                if (data) {
+                    const deletedIds = (data.deleted_records || []).map(r => r.id);
+                    trackingData = (data.tracking_history || data.trackingHistory || [])
+                        .filter(t => !deletedIds.includes(t.id))
+                        .filter(t => t.shipmentId === item.id || t.shipment_id === item.id || t.orderId === item.id || t.order_id === item.id)
+                        .sort((a, b) => new Date(b.createdAt || b.created_at) - new Date(a.createdAt || a.created_at));
+                }
+            } catch (e) {
+                console.warn('获取轨迹失败:', e);
+            }
+
+            const statusInfo = getStatusInfo(item.status);
+            const dateStr = item.orderDate ? new Date(item.orderDate).toLocaleDateString('zh-CN') : '-';
+
+            let trackingHtml = '';
+            if (trackingData.length > 0) {
+                trackingHtml = `
+                    <div class="tracking-timeline" style="margin-top:16px;">
+                        <div class="detail-section-title">物流轨迹</div>
+                        ${trackingData.map((track, idx) => {
+                            const tInfo = getStatusInfo(track.status);
+                            const tTime = new Date(track.createdAt || track.created_at || '').toLocaleString('zh-CN');
+                            const isActive = idx === 0;
+                            return `
+                                <div class="timeline-item">
+                                    <div class="timeline-dot ${isActive ? 'active' : ''}"></div>
+                                    <div class="timeline-content">
+                                        <div class="timeline-status ${isActive ? 'active' : ''}">
+                                            <span class="status-icon ${tInfo.css}" style="width:18px;height:18px;font-size:9px;"><i class="fas ${tInfo.icon}"></i></span>
+                                            ${tInfo.label}
+                                        </div>
+                                        <div class="timeline-time">${tTime}</div>
+                                        ${track.description || track.message ? `<div class="timeline-desc">${track.description || track.message}</div>` : ''}
+                                        ${track.location ? `<div class="timeline-desc"><i class="fas fa-map-marker-alt"></i> ${track.location}</div>` : ''}
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+            }
+
+            modal.innerHTML = `
+                <button class="detail-close" onclick="closeDetail()">&times;</button>
+                <div class="detail-title">订单详情</div>
+                <div class="detail-grid">
+                    <div>
+                        <div class="detail-section-title">基本信息</div>
+                        <div class="detail-item">
+                            <div class="detail-label">订单ID</div>
+                            <div class="detail-value">${item.id}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">起运地</div>
+                            <div class="detail-value">${item.origin || '-'}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">目的地</div>
+                            <div class="detail-value">${item.destination || '-'}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">货物信息</div>
+                            <div class="detail-value">${item.goodsInfo || '-'}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">件数</div>
+                            <div class="detail-value">${item.pieces}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">客户计费重</div>
+                            <div class="detail-value">${Number(item.chargeableWeight).toFixed(2)} ${item.weightUnit}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">运输方式</div>
+                            <div class="detail-value">${item.transportMethod || '-'}</div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="detail-section-title">状态与费用</div>
+                        <div class="detail-item">
+                            <div class="detail-label">下单日期</div>
+                            <div class="detail-value">${dateStr}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">状态</div>
+                            <div class="detail-value">
+                                <span class="status-badge ${statusInfo.css}"><span class="status-icon ${statusInfo.css}" style="width:18px;height:18px;font-size:9px;"><i class="fas ${statusInfo.icon}"></i></span> ${statusInfo.label}</span>
+                            </div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">贴标</div>
+                            <div class="detail-value">${item.label || '-'}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">备注</div>
+                            <div class="detail-value">${item.notes || '-'}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">转单号</div>
+                            <div class="detail-value">
+                                ${item.trackingNumber || '-'}
+                                ${item.trackingNumber ? `<a href="https://t.17track.net/zh-cn#nums=${item.trackingNumber}" target="_blank" class="track-btn"><i class="fas fa-globe"></i> 17Track查询</a>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                ${trackingHtml}
+            `;
+        }
+
+        function closeDetail() {
+            document.getElementById('detail-overlay').classList.remove('active');
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeDetail();
+        });
+    </script>
+</body>
+</html>
